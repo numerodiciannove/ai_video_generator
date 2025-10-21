@@ -2,14 +2,16 @@ import asyncio
 from pathlib import Path
 import uuid
 from datetime import datetime
+
 from elevenlabs import ElevenLabs
+from loguru import logger
+
 from core.configs import ELEVEN_LABS_API_KEY
 
 
 class TextToSpeechService:
     BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
 
-    # Настройки
     MAX_CONCURRENT = 3
     MODEL_ID = "eleven_multilingual_v2"
     AUDIO_FORMAT = "mp3_44100_128"
@@ -23,9 +25,10 @@ class TextToSpeechService:
         self.semaphore = asyncio.Semaphore(self.MAX_CONCURRENT)
 
     def get_all_voices(self) -> list[dict]:
-        """Получить все голоса"""
+        """Get all voices"""
         response = self.client.voices.get_all(show_legacy=True)
         voices = response.voices
+
         return [
             {"voice_id": v.voice_id, "name": v.name, "preview_url": getattr(v, "preview_url", None)}
             for v in voices
@@ -38,10 +41,10 @@ class TextToSpeechService:
         return None
 
     def generate_and_save_voice_sync(self, text: str, voice_name: str, save_dir: Path) -> str:
-        """Синхронная генерация аудио (без aiofiles)"""
+        """Synchronous audio generation (without aiofiles)"""
         voice_id = self.get_voice_id_by_name(voice_name)
         if not voice_id:
-            raise ValueError(f"Голос '{voice_name}' не найден")
+            raise ValueError(f"Voice '{voice_name}' not found")
 
         save_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -61,18 +64,18 @@ class TextToSpeechService:
                 f.write(chunk)
 
         if file_path.stat().st_size == 0:
-            raise RuntimeError(f"Аудио не сгенерировано: {file_path}")
+            raise RuntimeError(f"Audio not generated: {file_path}")
 
-        print(f"🎤 Сохранён голос: {file_path}")
+        logger.info(f"Voice saved: {file_path}")
         return str(file_path)
 
     async def generate_and_save_voice(self, text: str, voice_name: str, save_dir: Path) -> str:
-        """Асинхронный обёртка над sync методом"""
+        """Asynchronous wrapper over sync method"""
         async with self.semaphore:
             return await asyncio.to_thread(self.generate_and_save_voice_sync, text, voice_name, save_dir)
 
     async def generate_blocks(self, voice_blocks: dict) -> dict[str, list[str]]:
-        """Асинхронная обработка нескольких блоков TTS"""
+        """Asynchronous processing of multiple TTS blocks"""
         results = {}
 
         async def process_voice(block_name, item):
@@ -81,7 +84,7 @@ class TextToSpeechService:
                 path = await self.generate_and_save_voice(item["text"], item["voice"], save_dir)
                 results.setdefault(block_name, []).append(path)
             except Exception as e:
-                print(f"❌ Ошибка ({block_name}/{item['voice']}): {e}")
+                logger.error(f"Error ({block_name}/{item['voice']}): {e}")
 
         tasks = [process_voice(block, item) for block, items in voice_blocks.items() for item in items]
         await asyncio.gather(*tasks)

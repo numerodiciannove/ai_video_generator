@@ -1,4 +1,12 @@
-ELEVEN_LABS_API_KEY = "sk_d2c8f3b502a7d33e79d232eb429a2064f74229d2d84fabc6"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
+
+if not ELEVEN_LABS_API_KEY:
+    raise ValueError("ELEVEN_LABS_API_KEY not found in .env file!")
 
 
 test_request = {

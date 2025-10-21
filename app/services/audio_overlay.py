@@ -1,7 +1,10 @@
-import random
 import subprocess
-from pathlib import Path
+import random
 import re
+from pathlib import Path
+
+from loguru import logger
+
 
 class AudioOverlayService:
     FFMPEG_PATH = Path(__file__).resolve().parent.parent / "bin" / "ffmpeg" / "ffmpeg.exe"
@@ -29,11 +32,11 @@ class AudioOverlayService:
         self.videos = list(self.input_videos_dir.glob("*.mp4"))
 
         if not self.bg_audios:
-            raise ValueError("Нет фоновых аудио")
+            raise ValueError("No background audio")
         if not self.voice_audios:
-            raise ValueError("Нет voice аудио")
+            raise ValueError("No voice audio")
         if not self.videos:
-            raise ValueError("Нет видео для обработки")
+            raise ValueError("No videos to process")
 
     def _recode_audio(self, audio_path: Path) -> Path | None:
         output_path = self.temp_audio_dir / audio_path.name
@@ -49,7 +52,7 @@ class AudioOverlayService:
             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return output_path
         except subprocess.CalledProcessError:
-            print(f"⚠️ Пропускаем битый аудиофайл: {audio_path.name}")
+            logger.warning(f"Skipping corrupted audio file: {audio_path.name}")
             return None
 
     def _get_duration(self, path: Path) -> float:
@@ -70,18 +73,18 @@ class AudioOverlayService:
             voice_audio_fixed = self._recode_audio(voice_audio)
 
             if not bg_audio_fixed or not voice_audio_fixed:
-                print(f"⚠️ Пропускаем видео {video_path.name} из-за битого аудио")
+                logger.warning(f"⚠️ Skipping video {video_path.name} due to corrupted audio")
                 continue
 
             video_duration = self._get_duration(video_path)
             bg_duration = self._get_duration(bg_audio_fixed)
 
-            # сколько раз повторить фон, чтобы он покрывал видео
+            # How many times to repeat background to cover video
             loop_count = int(video_duration // bg_duration) + 1
 
             output_path = self.done_dir / video_path.name
 
-            # повторяем фон с помощью -stream_loop
+            # Repeat background using -stream_loop
             cmd = [
                 str(self.FFMPEG_PATH),
                 "-y",
@@ -95,21 +98,13 @@ class AudioOverlayService:
                 ),
                 "-map", "0:v",
                 "-map", "[aout]",
-                "-c:v", "copy",  # видео без перекодирования
+                "-c:v", "copy",
                 "-c:a", "aac",
                 "-ar", str(self.AUDIO_SAMPLE_RATE),
                 "-ac", str(self.AUDIO_CHANNELS),
-                "-shortest",  # обрезаем аудио до длины видео
+                "-shortest",
                 str(output_path)
             ]
 
             subprocess.run(cmd, check=True)
-            print(f"✅ Обработано видео: {output_path.name}")
-
-if __name__ == "__main__":
-    task_name = "test_task_3blocks_with_audio"
-    service = AudioOverlayService(task_name)
-
-    print("🎧 Запускаем наложение аудио на видео...")
-    service.overlay_audio()
-    print("✅ Все видео обработаны")
+            logger.info(f"Video processed: {output_path.name}")

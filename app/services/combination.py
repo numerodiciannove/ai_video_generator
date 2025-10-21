@@ -11,15 +11,16 @@ class CombinationService:
         self.output_dir = self.BASE_TEMP_DIR / task_name / "output"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_combinations(self, video_blocks: dict) -> list[tuple[Any, ...]]:
+    @staticmethod
+    def generate_combinations(video_blocks: dict) -> list[tuple[Any, ...]]:
         """
-        Генерирует все возможные комбинации видео из блоков.
+        Generates all possible combinations of videos from blocks.
         """
         blocks = [v for k, v in sorted(video_blocks.items())]
         return list(product(*blocks))
 
     def get_output_path(self, idx: int) -> Path:
         """
-        Путь для сохранения итогового видео
+        Path for saving final video
         """
         return self.output_dir / f"combo_{idx:03d}.mp4"

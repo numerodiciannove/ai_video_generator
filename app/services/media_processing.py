@@ -1,98 +1,111 @@
 import asyncio
+import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+from loguru import logger
 
 from app.schemas.urls_validator import ConfigModel
 from app.services.file_downloader import AsyncDownloaderService
-from app.services.text_to_speach import TextToSpeechService
 from app.services.audio_overlay import AudioOverlayService
+from app.services.google_driver_uploadaer import GoogleDriveService
+from app.services.text_to_speach import TextToSpeechService
 from app.services.video_combiner import VideoCombinerService
-from core.configs import test_request
 
 
 class MediaProcessingService:
-    def __init__(self, config: Dict[str, Any]):
-        # Валидируем и собираем ссылки
-        self.config = ConfigModel.collect_links(config)
-        self.task_name = self.config["task_name"]
+    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
 
-        # Инициализация сервисов
+    def __init__(self, config: Dict[str, Any]):
+        self.config = ConfigModel.collect_links(config)
+        self.task_name = self.config.get("task_name", "default_project")
+
         self.tts_service = TextToSpeechService(task_name=self.task_name)
         self.video_downloader = AsyncDownloaderService(task_name=self.task_name)
         self.audio_downloader = AsyncDownloaderService(task_name=self.task_name)
+        self.gdrive_service = GoogleDriveService(project_name=self.task_name)
 
-    async def download_videos(self) -> Dict[str, list[Path]]:
+    async def _download_videos(self) -> Dict[str, List[Path]]:
         videos = self.config.get("video_blocks", {})
         if not videos:
-            print("⚠️ Нет видео для скачивания")
+            print("No videos to download.")
             return {}
-        print(f"⬇️ Скачиваем {sum(len(v) for v in videos.values())} видео...")
+        print(f"Downloading {sum(len(v) for v in videos.values())} video files...")
         return await self.video_downloader.download_blocks(videos, files_type="video")
 
-    async def download_audios(self) -> Dict[str, list[Path]]:
+    async def _download_audios(self) -> Dict[str, List[Path]]:
         audios = self.config.get("audio_blocks", {})
         if not audios:
-            print("⚠️ Нет аудио для скачивания")
+            print("No audio files to download.")
             return {}
-        print(f"⬇️ Скачиваем {sum(len(a) for a in audios.values())} аудио...")
+        logger.info(f"Downloading {sum(len(a) for a in audios.values())} audio files...")
         return await self.audio_downloader.download_blocks(audios, files_type="audio")
 
-    async def generate_voices(self) -> Dict[str, list[str]]:
+    async def _generate_voices(self) -> Dict[str, List[str]]:
         voices = self.config.get("voice_blocks", {})
         if not voices:
-            print("⚠️ Нет голосов для генерации")
+            print("No voice blocks to generate.")
             return {}
-        print(f"🎙 Генерируем голоса для {len(voices)} блоков...")
+        logger.info(f"Generating voices for {len(voices)} blocks...")
         return await self.tts_service.generate_blocks(voices)
 
-    async def process_all(self) -> Dict[str, Any]:
-        print("🚀 Запуск обработки всех медиа...")
+    def _combine_videos(self) -> List[Path]:
+        logger.info("Combining videos...")
 
-        # Параллельно скачиваем и генерируем
-        videos_task = asyncio.create_task(self.download_videos())
-        audios_task = asyncio.create_task(self.download_audios())
-        voices_task = asyncio.create_task(self.generate_voices())
-
-        videos, audios, voices = await asyncio.gather(videos_task, audios_task, voices_task)
-        print("✅ Все медиа скачаны/сгенерированы")
-
-        # 1️⃣ Комбинируем видео
-        print("🎬 Запускаем комбайнер видео...")
         try:
             combiner = VideoCombinerService(task_name=self.task_name)
             combined_videos = combiner.generate_combinations()
+            return combined_videos
         except Exception as e:
-            print(f"❌ Ошибка при комбинировании видео: {e}")
-            combined_videos = []
+            logger.error(f"Error combining videos: {e}")
+            return []
 
-        if not combined_videos:
-            print("⚠️ Нет скомбинированных видео для наложения аудио")
-            return {"videos": videos, "audios": audios, "voices": voices}
+    def _overlay_audio(self):
+        logger.info("Applying audio overlay to combined videos...")
 
-        # 2️⃣ Накладываем аудио на скомбинированные видео
-        print("🎧 Запускаем наложение аудио на скомбинированные видео...")
         audio_overlay_service = AudioOverlayService(task_name=self.task_name)
         audio_overlay_service.overlay_audio()
 
-        return {"videos": videos, "audios": audios, "voices": voices, "combined_videos": combined_videos}
+    def _upload_to_drive(self) -> List[str]:
+        logger.info("Uploading combined videos to Google Drive...")
 
+        uploaded_files = self.gdrive_service.upload_files()
+        logger.info(f"Uploaded {len(uploaded_files)} files to Google Drive.")
+        return uploaded_files
 
-if __name__ == "__main__":
-    async def main():
-        service = MediaProcessingService(config=test_request)
-        results = await service.process_all()
+    def _cleanup_temp_files(self):
+        temp_project_dir = self.BASE_TEMP_DIR / self.task_name
+        if temp_project_dir.exists() and temp_project_dir.is_dir():
+            shutil.rmtree(temp_project_dir)
+            logger.warning(f"Temporary files for project '{self.task_name}' have been removed.")
 
-        print("\n📦 Результаты обработки медиа:")
-        for media_type, blocks in results.items():
-            if isinstance(blocks, dict):
-                print(f"\n{media_type}:")
-                for block, files in blocks.items():
-                    for f in files:
-                        print(f"  {block}: {f}")
-            else:  # список видео
-                print(f"\n{media_type}:")
-                for f in blocks:
-                    print(f"  {f}")
+    async def process_all(self) -> Dict[str, Any]:
+        logger.info("Starting media processing...")
 
+        try:
+            videos_task = asyncio.create_task(self._download_videos())
+            audios_task = asyncio.create_task(self._download_audios())
+            voices_task = asyncio.create_task(self._generate_voices())
 
-    asyncio.run(main())
+            videos, audios, voices = await asyncio.gather(videos_task, audios_task, voices_task)
+            logger.success("All media downloaded/generated successfully.")
+
+            combined_videos = self._combine_videos()
+
+            uploaded_files = []
+            if combined_videos:
+                self._overlay_audio()
+                uploaded_files = self._upload_to_drive()
+            else:
+                logger.warning("No combined videos available for audio overlay or upload.")
+
+            return {
+                "videos": videos,
+                "audios": audios,
+                "voices": voices,
+                "combined_videos": combined_videos,
+                "uploaded_files": uploaded_files
+            }
+
+        finally:
+            self._cleanup_temp_files()
