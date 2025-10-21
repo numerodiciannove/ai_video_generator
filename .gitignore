@@ -176,5 +176,5 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 /app/temp_files/
 /.idea/ai_video_genertor.iml
-.idea/
+/.idea/
 /app/bin/

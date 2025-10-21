@@ -5,9 +5,6 @@ load_dotenv()
 
 ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
 
-if not ELEVEN_LABS_API_KEY:
-    raise ValueError("ELEVEN_LABS_API_KEY not found in .env file!")
-
 
 test_request = {
   "task_name": "test_task_3blocks_with_audio",
