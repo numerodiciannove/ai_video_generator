@@ -1,4 +1,4 @@
-ELEVEN_LABS_API_KEY = "sk_15593b39ba9cfd88873b1f91e164efeac2d501f235333de8"
+ELEVEN_LABS_API_KEY = "sk_d2c8f3b502a7d33e79d232eb429a2064f74229d2d84fabc6"
 
 
 test_request = {

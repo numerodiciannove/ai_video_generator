@@ -13,7 +13,7 @@ class VideoCombinerService:
 
     # === Общие настройки видео ===
     DEFAULT_CODEC = "libx264"
-    DEFAULT_FPS = 1          # FPS для всех видео
+    DEFAULT_FPS = 10          # FPS для всех видео
     DEFAULT_WIDTH = 270       # ширина после ресайза
     DEFAULT_HEIGHT = 480     # высота после ресайза
     DEFAULT_SAR = 1           # pixel aspect ratio

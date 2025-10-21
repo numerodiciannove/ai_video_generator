@@ -2,10 +2,11 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any
 
-
 from app.schemas.urls_validator import ConfigModel
 from app.services.file_downloader import AsyncDownloaderService
 from app.services.text_to_speach import TextToSpeechService
+from app.services.audio_overlay import AudioOverlayService
+from app.services.video_combiner import VideoCombinerService
 from core.configs import test_request
 
 
@@ -47,30 +48,51 @@ class MediaProcessingService:
     async def process_all(self) -> Dict[str, Any]:
         print("🚀 Запуск обработки всех медиа...")
 
+        # Параллельно скачиваем и генерируем
         videos_task = asyncio.create_task(self.download_videos())
         audios_task = asyncio.create_task(self.download_audios())
         voices_task = asyncio.create_task(self.generate_voices())
 
         videos, audios, voices = await asyncio.gather(videos_task, audios_task, voices_task)
-        print("✅ Все медиа обработаны успешно")
+        print("✅ Все медиа скачаны/сгенерированы")
 
-        return {"videos": videos, "audios": audios, "voices": voices}
+        # 1️⃣ Комбинируем видео
+        print("🎬 Запускаем комбайнер видео...")
+        try:
+            combiner = VideoCombinerService(task_name=self.task_name)
+            combined_videos = combiner.generate_combinations()
+        except Exception as e:
+            print(f"❌ Ошибка при комбинировании видео: {e}")
+            combined_videos = []
 
+        if not combined_videos:
+            print("⚠️ Нет скомбинированных видео для наложения аудио")
+            return {"videos": videos, "audios": audios, "voices": voices}
+
+        # 2️⃣ Накладываем аудио на скомбинированные видео
+        print("🎧 Запускаем наложение аудио на скомбинированные видео...")
+        audio_overlay_service = AudioOverlayService(task_name=self.task_name)
+        audio_overlay_service.overlay_audio()
+
+        return {"videos": videos, "audios": audios, "voices": voices, "combined_videos": combined_videos}
 
 
 if __name__ == "__main__":
-
     async def main():
         service = MediaProcessingService(config=test_request)
         results = await service.process_all()
 
         print("\n📦 Результаты обработки медиа:")
         for media_type, blocks in results.items():
-            print(f"\n{media_type}:")
-            for block, files in blocks.items():
-                for f in files:
-                    print(f"  {block}: {f}")
+            if isinstance(blocks, dict):
+                print(f"\n{media_type}:")
+                for block, files in blocks.items():
+                    for f in files:
+                        print(f"  {block}: {f}")
+            else:  # список видео
+                print(f"\n{media_type}:")
+                for f in blocks:
+                    print(f"  {f}")
 
-        # service.clear_temp()
 
     asyncio.run(main())
