@@ -7,6 +7,8 @@ from loguru import logger
 
 
 class AudioOverlayService:
+    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+
     FFMPEG_PATH = Path(__file__).resolve().parent.parent / "bin" / "ffmpeg" / "ffmpeg.exe"
     BG_VOLUME = 0.2
     AUDIO_CODEC = "aac"
@@ -16,7 +18,8 @@ class AudioOverlayService:
 
     def __init__(self, task_name: str):
         self.task_name = task_name
-        self.base_dir = Path(__file__).resolve().parent.parent / "temp_files" / task_name
+        # self.base_dir = Path(__file__).resolve().parent.parent / "temp_files" / task_name
+        self.base_dir = self.BASE_TEMP_DIR / task_name
 
         self.input_videos_dir = self.base_dir / "combined_movies_raw"
         self.done_dir = self.base_dir / "done"

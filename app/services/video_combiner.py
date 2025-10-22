@@ -11,8 +11,8 @@ from loguru import logger
 
 
 class VideoCombinerService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
-    BIN_DIR = Path(__file__).resolve().parent.parent / "bin" / "ffmpeg"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+    BIN_DIR = Path(__file__).resolve().parent / "bin" / "ffmpeg"
 
     # Video settings
     DEFAULT_CODEC = "libx264"

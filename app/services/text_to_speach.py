@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+
 import asyncio
 from pathlib import Path
 import uuid
@@ -6,11 +9,14 @@ from datetime import datetime
 from elevenlabs import ElevenLabs
 from loguru import logger
 
-from core.configs import ELEVEN_LABS_API_KEY
+# from core.configs import ELEVEN_LABS_API_KEY
 
+load_dotenv()
+
+ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
 
 class TextToSpeechService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
 
     MAX_CONCURRENT = 3
     MODEL_ID = "eleven_multilingual_v2"

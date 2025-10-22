@@ -6,15 +6,15 @@ from typing import Dict, Any, List
 from loguru import logger
 
 from app.schemas.urls_validator import ConfigModel
-from app.services.file_downloader import AsyncDownloaderService
-from app.services.audio_overlay import AudioOverlayService
-from app.services.google_driver_uploadaer import GoogleDriveService
-from app.services.text_to_speach import TextToSpeechService
-from app.services.video_combiner import VideoCombinerService
+from .file_downloader import AsyncDownloaderService
+from .audio_overlay import AudioOverlayService
+from .google_driver_uploadaer import GoogleDriveService
+from .text_to_speach import TextToSpeechService
+from .video_combiner import VideoCombinerService
 
 
 class MediaProcessingService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
 
     def __init__(self, config: Dict[str, Any]):
         self.config = ConfigModel.collect_links(config)
