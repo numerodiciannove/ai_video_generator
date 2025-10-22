@@ -16,7 +16,7 @@ class GoogleDriveService:
 
         # Google auth files
         self.credentials_file = self.BASE_DIR / "core" / "mycredentials.json"
-        self.client_secrets_file = self.BASE_DIR / "core" / "client_secret_814344390131-ghjj334aoend3r7udesfsjkq9779vqkf.apps.googleusercontent.com.json"
+        self.client_secrets_file = self.BASE_DIR / "core" / "client_secret_-.apps.googleusercontent.com.json"
 
         # Create token directory if it doesn't exist
         self.credentials_file.parent.mkdir(parents=True, exist_ok=True)
@@ -41,8 +41,6 @@ class GoogleDriveService:
         self.project_folder_id = self._get_or_create_folder(self.project_name, parent_id=self.main_folder_id)
 
     def _get_or_create_folder(self, folder_name: str, parent_id: str = None) -> str:
-        """Searches for or creates folder on Google Drive. If parent_id specified, creates inside parent"""
-
         query = f"title='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
         if parent_id:
             query += f" and '{parent_id}' in parents"
