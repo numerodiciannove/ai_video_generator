@@ -7,9 +7,9 @@ from loguru import logger
 
 
 class AudioOverlayService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp_files"
 
-    FFMPEG_PATH = Path(__file__).resolve().parent.parent / "bin" / "ffmpeg" / "ffmpeg.exe"
+    FFMPEG_PATH = Path(__file__).resolve().parent.parent.parent / "bin" / "ffmpeg"
     BG_VOLUME = 0.2
     AUDIO_CODEC = "aac"
     AUDIO_SAMPLE_RATE = 44100
@@ -33,6 +33,8 @@ class AudioOverlayService:
         self.bg_audios = list(self.bg_audio_dir.glob("**/*.*"))
         self.voice_audios = list(self.voice_dir.glob("**/*.*"))
         self.videos = list(self.input_videos_dir.glob("*.mp4"))
+
+
 
         if not self.bg_audios:
             raise ValueError("No background audio")
