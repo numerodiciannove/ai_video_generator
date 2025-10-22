@@ -15,7 +15,4 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-
-# celery_app.autodiscover_tasks(["app.tasks.process_media_task"])
-
 celery_app.autodiscover_tasks(["app.celery_media_tasks"])
