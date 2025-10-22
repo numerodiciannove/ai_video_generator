@@ -4,7 +4,7 @@ from typing import Any
 
 
 class CombinationService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
 
     def __init__(self, task_name: str):
         self.task_name = task_name
