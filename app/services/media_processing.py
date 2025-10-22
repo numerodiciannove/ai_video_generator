@@ -108,5 +108,4 @@ class MediaProcessingService:
             }
 
         finally:
-            # self._cleanup_temp_files()
-            print("sdfsfdsfdf")
+            self._cleanup_temp_files()
