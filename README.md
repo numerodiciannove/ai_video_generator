@@ -15,8 +15,7 @@ docker compose up --build
 ```
 
 Після запуску API буде доступне за адресою:
-[http://localhost:5066](http://localhost:5066/docs)
-
+[http://localhost:5066/docs](http://localhost:5066/docs)
 ---
 
 ## Опис функціональності
