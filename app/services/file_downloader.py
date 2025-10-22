@@ -9,7 +9,7 @@ from loguru import logger
 
 
 class AsyncDownloaderService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp_files"
     MAX_CONCURRENT: int = 3
 
     def __init__(self, task_name: str):
