@@ -14,7 +14,7 @@ from .video_combiner import VideoCombinerService
 
 
 class MediaProcessingService:
-    BASE_TEMP_DIR = Path(__file__).resolve().parent / "temp_files"
+    BASE_TEMP_DIR = Path(__file__).resolve().parent.parent / "temp_files"
 
     def __init__(self, config: Dict[str, Any]):
         self.config = ConfigModel.collect_links(config)
@@ -108,4 +108,5 @@ class MediaProcessingService:
             }
 
         finally:
-            self._cleanup_temp_files()
+            # self._cleanup_temp_files()
+            print("sdfsfdsfdf")
