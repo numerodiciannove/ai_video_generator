@@ -9,7 +9,6 @@ from datetime import datetime
 from elevenlabs import ElevenLabs
 from loguru import logger
 
-# from core.configs import ELEVEN_LABS_API_KEY
 
 load_dotenv()
 
