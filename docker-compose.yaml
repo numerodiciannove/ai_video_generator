@@ -52,7 +52,7 @@ services:
     command: celery -A app.celery_app.config flower \
       --broker 'redis://redis:6379/0' \
       --port=5555 \
-      --logsLevel=info
+      --loglevel=info
     depends_on:
       - redis
     networks:
