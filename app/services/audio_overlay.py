@@ -1,13 +1,20 @@
+import os
+import platform
 import subprocess
 import random
 import re
 from pathlib import Path
+
+import urllib.request
+import zipfile
+import tarfile
 
 from loguru import logger
 
 
 class AudioOverlayService:
     BASE_TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp_files"
+    BIN_DIR = Path(__file__).resolve().parent.parent.parent / "bin" / "ffmpeg"
 
     FFMPEG_PATH = Path(__file__).resolve().parent.parent.parent / "bin" / "ffmpeg"
     BG_VOLUME = 0.2
@@ -18,7 +25,6 @@ class AudioOverlayService:
 
     def __init__(self, task_name: str):
         self.task_name = task_name
-        # self.base_dir = Path(__file__).resolve().parent.parent / "temp_files" / task_name
         self.base_dir = self.BASE_TEMP_DIR / task_name
 
         self.input_videos_dir = self.base_dir / "combined_movies_raw"
@@ -34,14 +40,53 @@ class AudioOverlayService:
         self.voice_audios = list(self.voice_dir.glob("**/*.*"))
         self.videos = list(self.input_videos_dir.glob("*.mp4"))
 
-
-
         if not self.bg_audios:
             raise ValueError("No background audio")
         if not self.voice_audios:
             raise ValueError("No voice audio")
         if not self.videos:
             raise ValueError("No videos to process")
+
+        self.FFMPEG_PATH = self._ensure_ffmpeg()
+
+    def _ensure_ffmpeg(self) -> str:
+        self.BIN_DIR.mkdir(parents=True, exist_ok=True)
+
+        system = platform.system().lower()
+        ffmpeg_exe = "ffmpeg.exe" if system == "windows" else "ffmpeg"
+        ffmpeg_path = self.BIN_DIR / ffmpeg_exe
+
+        if ffmpeg_path.exists():
+            return str(ffmpeg_path)
+
+        logger.info(f"Downloading ffmpeg for {system}...")
+
+        if system == "windows":
+            url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+            zip_path = self.BIN_DIR / "ffmpeg.zip"
+            urllib.request.urlretrieve(url, zip_path)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                for f in zip_ref.namelist():
+                    if f.endswith("bin/ffmpeg.exe"):
+                        zip_ref.extract(f, self.BIN_DIR)
+                        os.rename(self.BIN_DIR / f, ffmpeg_path)
+            zip_path.unlink()
+        elif system == "linux":
+            url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+            tar_path = self.BIN_DIR / "ffmpeg.tar.xz"
+            urllib.request.urlretrieve(url, tar_path)
+            with tarfile.open(tar_path) as tar_ref:
+                for f in tar_ref.getmembers():
+                    if f.name.endswith("/ffmpeg"):
+                        tar_ref.extract(f, self.BIN_DIR)
+                        os.rename(self.BIN_DIR / f.name, ffmpeg_path)
+                        os.chmod(ffmpeg_path, 0o755)
+            tar_path.unlink()
+        else:
+            raise RuntimeError(f"Unsupported OS: {system}")
+
+        logger.info(f"ffmpeg ready: {ffmpeg_path}")
+        return str(ffmpeg_path)
 
     def _recode_audio(self, audio_path: Path) -> Path | None:
         output_path = self.temp_audio_dir / audio_path.name

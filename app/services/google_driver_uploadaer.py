@@ -12,7 +12,7 @@ class GoogleDriveService:
 
         # Project root
         self.BASE_DIR = Path(__file__).resolve().parent.parent.parent
-        self.BASE_TEMP_DIR = self.BASE_DIR / "app" / "temp_files"
+        self.BASE_TEMP_DIR = self.BASE_DIR / "temp_files"
 
         # Google auth files
         self.credentials_file = self.BASE_DIR / "core" / "mycredentials.json"
