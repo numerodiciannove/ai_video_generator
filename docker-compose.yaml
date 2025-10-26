@@ -1,0 +1,65 @@
+services:
+  redis:
+    image: redis:8.2.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - app_network
+
+  api:
+    container_name: movie_api
+    build:
+      context: .
+    env_file:
+      - .env
+    command: uvicorn main:app --host 0.0.0.0 --port 5066 --workers 2
+    ports:
+      - "5066:5066"
+    volumes:
+      - ".:/app"
+      - "./temp_files:/app/temp_files:rw"
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+  celery_worker:
+    container_name: capi_celery_worker
+    build:
+      context: .
+    env_file:
+      - .env
+    command: celery -A app.celery_app.config worker --loglevel=debug
+    volumes:
+      - ".:/app"
+      - "./temp_files:/app/temp_files:rw"
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+  flower:
+    container_name: capi_celery_flower
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "5001:5001"
+      - "5555:5555"
+    command: celery -A app.celery_app.config flower \
+      --broker 'redis://redis:6379/0' \
+      --port=5555 \
+      --loglevel=info
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+networks:
+  app_network:
+
+volumes:
+  redis_data:
